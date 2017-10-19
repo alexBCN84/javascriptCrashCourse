@@ -42,6 +42,8 @@ USER FUNCTIONALITY:                                            ENTRY FUNCTIONALI
                               .......................
                               1. createGlossary('author', 'title')*
                               2. destroyGlossary(index)
+                              3. describeGlossary(index)('description')
+                              4. scopeForGlossary(index)('area')
 
 _______________________________________________________________________________________
 
@@ -68,11 +70,11 @@ seeFunctionality();
 
 const User = class {
   constructor(name, email, bio, location, interests, followers, skills, following,
-                 glossaries, entries, nOfEntries, nOfGlossaries) {
+                 glossaries, entries, nOfEntries, nOfGlossaries,sharedWithMe) {
     this.name = name;
     this.bio = bio;
     this.location = location;
-    this. interests = [];
+    this.interests = [];
     this.followers = [];
     this.skills = [];
     this.following = [];
@@ -80,20 +82,19 @@ const User = class {
     this.entries = [];
     this.nOfEntries = 0;
     this.nOfGlossaries = 0;
+    this.sharedWithMe = [];
   }
 };
 
 const Glossary = class {
-  constructor(title, author, descriptionAndAims, knwoledgeScope, likes, xShared, status,
+  constructor(title, author, description, area, likes, xShared, status,
                  xCopied, noOfEntries, rating, reviews) {
     this.title = title;
     this.author = author;
-    this.descriptionAndAims = descriptionAndAims;
-    this.knwoledgeScope = knwoledgeScope;
+    this.description = description;
+    this.area = area;
     this.likes = 0;
     this.xShared = 0;
-    this.status = status;
-    this.xCopied = 0;
     this.entries = [];
     this.nOfEntries = 0;
     this.rating = rating;
@@ -112,8 +113,6 @@ const Entry = class {
     this.categories = [];
     this.likes = 0
     this.xShared = 0;
-    this.xCopied = 0;
-    this.status = status;
     this.relatedEntries = [];
     this.relatedTerms = [];
     this.mnemotechnics = [];
@@ -137,11 +136,11 @@ let glossaries = appStore.glossaries;
 const render = (data) => console.log(data);
 
 
-const edit = fromArray => index => property => update => {
-  if (fromArray !== (users || entries || glossaries)) console.log(
+const edit = arr => index => property => update => {
+  if (arr !== (users || entries || glossaries)) console.log(
     'Please run the function again passing in the right argument.');
-  fromArray[index][property] = update;
-  render(property + ': ' + fromArray[index][property]);
+  arr[index][property] = update;
+  render(property + ': ' + arr[index][property]);
 };
 
 const destroyAll = arr => arr = [];
@@ -149,6 +148,20 @@ const destroyAll = arr => arr = [];
 const like = arr => identifier => index => (
   arr[index].likes++, render('"'+ arr[index][identifier] + '"' + ' has ' + arr[index].likes + ' likes.')
 );
+
+
+const share = userA => arr => itemIndex => userB => {
+  users[userB].sharedWithMe = users[userB].sharedWithMe.concat(users[userA][arr][itemIndex]);
+  let info = '', glossaryOrEntry = '';
+  if (arr === 'glossaries') glossaries[itemIndex].xShared++, glossaryOrEntry = glossaries;
+  if (arr === 'entries') entries[itemIndex].xShared++, glossaryOrEntry = entries;
+  if (arr === 'glossaries') info = 'glossary'; if (arr === 'entries') info = 'entry';
+  render('The following ' +  info + ' has been shared with ' + users[userB].name + ':');
+  render(users[userB].sharedWithMe);
+  render('This ' + info + ' has been ' + glossaryOrEntry[itemIndex].xShared + ' times shared.');
+};
+
+
 
 // User
 
@@ -190,6 +203,7 @@ const copySkills = userA => userB => (
 // Glossary
 
 const createGlossary = title => author => {
+  if (users[author] === undefined) return render('Undefined User Error: before creating a glossary, you must create a user.');
   glossaries = glossaries.concat(new Glossary(title, users[author]));
   users[author].glossaries = users[author].glossaries.concat(glossaries[glossaries.length-1]);
   render('new glossary : ' + '"' + title + '"' + '.');
@@ -201,14 +215,22 @@ const createGlossary = title => author => {
 const destroyGlossary = index =>
   render(glossaries = glossaries.filter(obj => obj !== glossaries[index]));
 
+const describeGlossary = index => description => (glossaries[index].description = description,
+  render(glossaries[index]['title'].toUpperCase() + '\'s description or purpose: \n' + description)
+);
+
+const scopeForGlossary = index => area => (glossaries[index].area = area,
+  render(glossaries[index]['title'].toUpperCase() + '\'s field or knowledge scope: \n' + area)
+);
 
 // Entry
 
 const createEntry = term => author => defOrTrans => glossary => {
+  if ((users[author] || glossaries[glossary]) === undefined)
+    return render('Undefined Type Error: Have you already created at least one user and one glossary?');
   entries = entries.concat(new Entry(term, users[author], defOrTrans, glossaries[glossary]));
   users[author].entries = users[author].entries.concat(entries[entries.length-1]);
   render('new entry : ' + '"' + term + '"' + '.');
-  users[author].entries = users[author].entries.concat(entries[entries.length-1]);
   users[author].nOfEntries++;
   render('"' + term + '"' + ' was added to ' + users[author].name + '\'s entries.');
   render(users[author].name + ' has now ' + users[author].nOfEntries + ' entries.');
@@ -223,3 +245,15 @@ render(entries = entries.filter(obj => obj !== entries[index]));
 const addCategories = entryIndex => (...categories) => (
   entries[entryIndex].categories = entries[entryIndex].categories.concat(categories.join(' ')),
   render(entries[entryIndex].term + '\'s categories: ' + entries[entryIndex].categories.join(', ')));
+
+
+// createUser('Pedro');
+// createUser('Marcus');
+// createGlossary('dogs glossary')(1);
+// createEntry('der Hund')(0)('el perro')(0);
+// // shareAll(arr)
+
+// console.log(users[1].glossaries[0]);
+
+
+// share(0)('entries')(0)(1);
